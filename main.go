@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )	
 
@@ -13,57 +14,17 @@ type Conf struct {
 }
 
 func main() {
-	// Array of possible conf to pass to sonar-scanner cmd
-	var params = []Conf{
-		Conf{
-			code: "sonar_host",
-		 	arg: "sonar.host.url",
-		},
-		Conf{
-			code: "sonar_token",
-		 	arg: "sonar.login",
-		},
-		Conf{
-			code: "project_key",
-		 	arg: "sonar.projectKey",
-		},
-		Conf{
-			code: "project_name",
-		 	arg: "sonar.projectName",
-		},
-		Conf{
-			code: "project_version",
-		 	arg: "sonar.projectVersion",
-		},
-		Conf{
-			code: "sources",
-		 	arg: "sonar.sources",
-		},
-		Conf{
-			code: "source_encoding",
-		 	arg: "sonar.sourceEncoding",
-		},
-	}
-
 	var args []string
-	var i = 0
-	for range params {
-		var param Conf = params[i]
-		i++
-		// Get conf from env
-		var value string = os.Getenv("PLUGIN_" + strings.ToUpper(param.code))
-		if value != "" {
-			// Add arg
-			args = append(args, "-D" + param.arg +"="+ value)
+	for _, envVar := range os.Environ() {
+		if (len(envVar) > 13 && string(envVar[0:13]) == "PLUGIN_SONAR.") {
+			args = append(args, "-D" + toCamelCase(envVar[7:len(envVar)]))
 		}
 	}
-	
 	var debug string = os.Getenv("PLUGIN_DEBUG")
 	// Print cmd in debug mof
 	if (debug == "true") {
 		fmt.Printf("DEBUG: run cmd: sonar-scanner %s\n", strings.Join(args, " "))
 	}
-
 	// Exec scan
 	cmd := exec.Command("sonar-scanner", args...)
 	output, err := cmd.CombinedOutput()
@@ -78,3 +39,38 @@ func main() {
 		fmt.Printf("ERROR: Sonarqube code analysis error:\n %s\n", err)
 	}
 }
+
+var link = regexp.MustCompile("(^[A-Za-z])|_([A-Za-z])")
+
+func toCamelCase(str string) string {
+	strValueArray := strings.Split(str , "=") 
+  strArray := strings.Split(strings.ToLower(strValueArray[0]) , ".") 
+
+  i :=0
+  for _, part := range strArray  {
+    strArray[i] = kebabToCamelCase(part)
+    i++
+  }
+
+  return strings.Join(strArray ,".") + "=" + strValueArray[1]
+}
+
+ func kebabToCamelCase(kebabInput string) string {
+	isToUpper := false
+	camelCase := ""
+	for _, char := range kebabInput  {
+		
+		if isToUpper && string(char) != "-"  {
+			camelCase += strings.ToUpper(string(char))
+			isToUpper = false
+		} else {
+			if string(char) == "-" {
+				isToUpper = true
+			} else {
+				camelCase += string(char)
+			}
+		}
+	}
+	return camelCase
+
+ }
