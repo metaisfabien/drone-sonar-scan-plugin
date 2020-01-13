@@ -39,4 +39,4 @@ steps
 
 ```
 Drone settings are passed to sonar-scanner command.
-[Sonar scanner documentation] (https://docs.sonarqube.org/latest/analysis/analysis-parameters/).
+[Sonar scanner documentation](https://docs.sonarqube.org/latest/analysis/analysis-parameters/).
